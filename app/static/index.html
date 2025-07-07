@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>공부 도우미 AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f6fa; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 40px auto; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px #0001; padding: 32px; }
+        h1 { color: #2d5be3; }
+        label { font-weight: bold; }
+        input, button, textarea { width: 100%; margin-top: 8px; margin-bottom: 16px; padding: 10px; border-radius: 6px; border: 1px solid #ccc; }
+        button { background: #2d5be3; color: #fff; border: none; font-size: 1.1em; cursor: pointer; }
+        button:hover { background: #1a3e8a; }
+        .category { margin-top: 24px; padding: 16px; background: #f0f4ff; border-radius: 8px; }
+        .quiz { margin-top: 16px; background: #eaf7ea; padding: 12px; border-radius: 8px; }
+        .answer { color: #2d5be3; font-weight: bold; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>공부 도우미 AI</h1>
+    <form id="topicForm">
+        <label for="topic">학습 주제 입력</label>
+        <input type="text" id="topic" name="topic" placeholder="예: Azure AI Foundry 전문가 되기" required />
+        <button type="submit">학습 플랜 생성</button>
+    </form>
+    <div id="result"></div>
+</div>
+<script>
+const form = document.getElementById('topicForm');
+const resultDiv = document.getElementById('result');
+form.onsubmit = async (e) => {
+    e.preventDefault();
+    resultDiv.innerHTML = '<p>생성 중...</p>';
+    const topic = document.getElementById('topic').value;
+    const res = await fetch('/generate_plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic })
+    });
+    if (!res.ok) {
+        resultDiv.innerHTML = '<p style="color:red">오류가 발생했습니다.</p>';
+        return;
+    }
+    const data = await res.json();
+    let html = `<h2>학습 플랜: ${data.topic}</h2>`;
+    data.categories.forEach(cat => {
+        html += `<div class='category'><h3>${cat.name}</h3>`;
+        html += '<ul>';
+        cat.details.forEach((d, i) => {
+            html += `<li>${d}`;
+            if (cat.links && cat.links[i]) {
+                html += ` <a href='${cat.links[i]}' target='_blank'>[링크]</a>`;
+            }
+            html += '</li>';
+        });
+        html += '</ul></div>';
+    });
+    if (data.quizzes && data.quizzes.length > 0) {
+        html += '<h2>퀴즈</h2>';
+        data.quizzes.forEach((q, idx) => {
+            html += `<div class='quiz'><b>Q${idx+1}. ${q.question}</b><br/><span class='answer' style='display:none'>A: ${q.answer}</span><br/><button onclick='this.previousElementSibling.style.display="inline";this.style.display="none";'>정답 보기</button></div>`;
+        });
+    }
+    resultDiv.innerHTML = html;
+};
+</script>
+</body>
+</html>
